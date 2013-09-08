@@ -1,7 +1,7 @@
 Migratable Process
 =========
 
-Mirgratable Process project a course project of CMU 15440 - Distributed Systems. The goal of this project is migrating a process from a node to another node without losing any data. We defined a migratable process is a process with FileInputStream and FileOutputStream. This project's components are listed below:
+Mirgratable Process is project a course project of CMU 15440 - Distributed Systems. The goal of this project is migrating a process from a node to another node without losing any data. We defined a migratable process is a process which *only* handles the file input and file output. This project's components are listed below:
 
   - MigratableProcess
   - ProcessManager
