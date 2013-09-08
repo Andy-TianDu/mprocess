@@ -9,11 +9,6 @@ Mirgratable Process project a course project of CMU 15440 - Distributed Systems.
 
 This project is built by *[Apache Maven](http://maven.apache.org/, "Apache Maven")*.  
 
-Version
--
-
-1.0
-
 How to Build
 -----------
 
