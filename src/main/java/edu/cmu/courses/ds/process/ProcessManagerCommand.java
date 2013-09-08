@@ -8,14 +8,38 @@ package edu.cmu.courses.ds.process;
  */
 public enum ProcessManagerCommand {
     /**
-     * All support commands
+     * Prints help information
      */
     HELP("help"),
+
+    /**
+     * Prints all running process
+     */
     PS("ps"),
+
+    /**
+     * Prints all inherited classes from <code>MigratableProcess</code>
+     */
     LS("ls"),
+
+    /**
+     * Start a process
+     */
     RUN("run"),
+
+    /**
+     * Migrate a process
+     */
     MG("mg"),
+
+    /**
+     * Quit the program
+     */
     QUIT("quit"),
+
+    /**
+     * Unknown command
+     */
     UNKNOWN("unknown");
 
     /**
