@@ -7,7 +7,7 @@ Mirgratable Process is project a course project of CMU 15440 - Distributed Syste
   - ProcessManager
   - TransactionalFileIOStream
 
-This project is built by *[Apache Maven](http://maven.apache.org/, "Apache Maven")*.  
+This project is built by *[Apache Maven]("http://maven.apache.org/", "Apache Maven")*.  
 
 How to Build
 -----------
