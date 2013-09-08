@@ -96,7 +96,6 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      * @see edu.cmu.courses.ds.process.MigratableProcess#processing()
      * @see edu.cmu.courses.ds.process.ProcessManager#finishProcess(MigratableProcess)
      */
-    @Override
     public void run(){
         try{
             processing();
