@@ -11,13 +11,48 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 
+/**
+ * The socket server of process manager.
+ * This sever is designed to handle the migration request
+ * from other <code>ProcessManager</code>. It implements
+ * the <code>run()</code> from the <code>Runnable</code>
+ * interface.
+ *
+ * @author Jian Fang(jianf)
+ * @author Fangyu Gao(fangyug)
+ * @see java.net.ServerSocket
+ * @see java.net.Socket
+ * @see edu.cmu.courses.ds.process.MigratableProcess
+ */
 public class ProcessServer implements Runnable{
+    /**
+     * Default port number of process server
+     */
     public static final int PORT = 15440;
+
+    /**
+     * Log handler
+     *
+     * @see <a href="http://logging.apache.org/log4j/2.x/">Log4J</a>
+     */
     private static Logger LOG = LogManager.getLogger(ProcessServer.class);
 
+    /**
+     * Server socket of process server
+     */
     private ServerSocket serverSocket;
+
+    /**
+     * Running flag
+     */
     private boolean running;
 
+    /**
+     * The implementation of <code>Runnable</code> interface
+     * First <code>bind()</code> the port, then idle loop to
+     * <code>accept()</code> migration request. If the running
+     * flag is not set, the function breaks the loop.
+     */
     @Override
     public void run() {
         running = true;
@@ -27,6 +62,14 @@ public class ProcessServer implements Runnable{
         }
     }
 
+    /**
+     * Stop the process server.
+     * Unset the running flag, then call <code>serverSocket.close()</code>
+     * This close operation will cause an <code>SocketException</code> in
+     * <code>accept()</code>.
+     *
+     * @see java.net.ServerSocket#close()
+     */
     public void stop(){
         if(running){
             running = false;
@@ -39,6 +82,10 @@ public class ProcessServer implements Runnable{
         }
     }
 
+    /**
+     * Bind the <code>PORT</code>.
+     * If bind failed, the program exit with -1.
+     */
     private void bind(){
         try {
             serverSocket = new ServerSocket(PORT);
@@ -48,6 +95,16 @@ public class ProcessServer implements Runnable{
         }
     }
 
+    /**
+     * Accept migration request from other <code>ProcessManager</code>.
+     * If the function caught a <code>SocketException</code> and the
+     * <code>running</code> flag is unset, we assert <code>stop()</code>
+     * is called, so exit the program normally. If not, something goes
+     * wrong, we exit the program with status -1.
+     *
+     * @see java.net.ServerSocket#accept()
+     * @see edu.cmu.courses.ds.process.ProcessServer#stop()
+     */
     private void accept(){
         Socket clientSocket = null;
         try {
@@ -64,6 +121,15 @@ public class ProcessServer implements Runnable{
         processRequest(clientSocket);
     }
 
+    /**
+     * Process the migration request.
+     * First, read the <code>MigratableProcess</code> object from socket
+     * by using <code>ObjectInputStream</code>. Then resume the process.
+     *
+     * @param clientSocket the client socket
+     * @see java.io.ObjectInputStream#readObject()
+     * @see edu.cmu.courses.ds.process.ProcessServer#processRequest(java.net.Socket)
+     */
     private void processRequest(Socket clientSocket){
         ObjectInputStream in;
         try {
@@ -82,6 +148,16 @@ public class ProcessServer implements Runnable{
         }
     }
 
+    /**
+     * Resume the migrated process.
+     * Start a new thread to run the migrated process.
+     *
+     * @param outputStream socket outputStream
+     * @param process migrated process
+     * @throws IOException if some IO errors occur
+     * @see java.io.PrintWriter#write(String)
+     * @see edu.cmu.courses.ds.process.ProcessManager#startProcess(MigratableProcess)
+     */
     private void processMigration(OutputStream outputStream,
                                   MigratableProcess process)
             throws IOException {
