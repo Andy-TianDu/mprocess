@@ -49,8 +49,19 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      * The suspending flag. When the flag is set, the
      * <code>processing()</code> function should break the idle loop.
      */
-    protected boolean suspending;
+    protected volatile boolean suspending;
 
+    /**
+     * The suspended flag. When the flag is set, the
+     * process is really suspend.
+     */ 
+    protected volatile boolean suspended;
+    /**
+     * The dead flag. When the flag is set, the <code>processing()</code>
+     * function should stop.
+     */
+    protected volatile boolean dead;
+    
     /**
      * The process ID
      */
@@ -61,6 +72,7 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      */
     public MigratableProcess(){
         initProcess(new String[0]);
+        this.id = ProcessManager.getInstance().generateID();
     }
 
     /**
@@ -70,6 +82,7 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      */
     public MigratableProcess(String[] arguments){
         initProcess(arguments);
+        this.id = ProcessManager.getInstance().generateID();
     }
 
     /**
@@ -82,7 +95,9 @@ public abstract class MigratableProcess implements Runnable, Serializable{
     public void initProcess(String[] arguments){
         this.arguments = new ArrayList<String>(Arrays.asList(arguments));
         this.suspending = false;
-        this.id = ProcessManager.getInstance().generateID();
+        this.dead = false;
+        this.suspended = false;
+        //this.id = ProcessManager.getInstance().generateID();
     }
 
     /**
@@ -104,6 +119,8 @@ public abstract class MigratableProcess implements Runnable, Serializable{
         }finally {
             ProcessManager.getInstance().finishProcess(this);
             suspending = false;
+            dead = false;
+            suspended = false;
         }
     }
 
@@ -117,11 +134,38 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      */
     public void suspend() throws InterruptedException {
         suspending = true;
-        while(suspending){
-            Thread.sleep(10);
+        while(!suspended)
+        {
+        	Thread.sleep(10);
         }
     }
 
+    /**
+     * Resume the running process from suspending.
+     * Clear the <code>suspending</code> flag, and start the process again.
+     *
+     * @throws InterruptedException if the resuming process is
+     *                              interrupted
+     */
+    public void resume() throws InterruptedException {
+    	suspending = false;
+    	suspended = false;
+    }
+    
+    /**
+     * Kill the running process.
+     * Set the <code>dead</code> flag.
+     *
+     * @throws InterruptedException if the killing process is
+     *                              interrupted
+     */
+    public void kill() throws InterruptedException {
+    	dead = true;
+    	while(dead) {
+    		Thread.sleep(10);
+    	}
+    }
+    
     /**
      * Set <code>migrated</code> flag of <code>inputStream</code>,
      * <code>outputStream</code>, and generate a new process ID after

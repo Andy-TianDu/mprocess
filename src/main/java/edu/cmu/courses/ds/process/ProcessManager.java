@@ -178,6 +178,15 @@ public class ProcessManager {
      * @see java.util.concurrent.ConcurrentLinkedQueue#offer(Object)
      */
     public void startProcess(MigratableProcess process) {
+        
+        try{
+        	process.resume();
+        }
+    	catch (InterruptedException e) {
+            LOG.error(getClass().getSimpleName() +
+                    "resume error", e);
+            return;
+    	}
         Thread thread = new Thread(process);
         thread.start();
         processes.offer(process);
@@ -381,18 +390,44 @@ public class ProcessManager {
 
             out.writeObject(process);
             status = in.readBoolean();
-            if (status)
+            if (status) {
+            	try {
+            		process.kill();
+            	}
+            	catch (InterruptedException e) {
+	                LOG.error(process.getClass().getSimpleName() +
+	                        "[" + process.getId() + "] kill error", e);
+	                return;
+            	}
                 System.out.println("Successfully migrated " +
                         process.getClass().getSimpleName() +
                         "[" + process.getId() + "]");
+            }
             else
+            {
+            	try {
+            		process.resume();
+            	}
+            	catch (InterruptedException e) {
+	                LOG.error(process.getClass().getSimpleName() +
+	                        "[" + process.getId() + "] resume error", e);
+	                return;
+            	}
                 System.out.println("Failed to migrate " +
                         process.getClass().getSimpleName() +
                         "[" + process.getId() + "]");
+            }
             in.close();
             out.close();
             socket.close();
         } catch (IOException e) {
+        	try {
+        		process.resume();
+        	}
+        	catch (InterruptedException e1) {
+                LOG.error(process.getClass().getSimpleName() +
+                        "[" + process.getId() + "] resume error", e1);
+        	}
             System.out.println("Connect " + hostName + " failed: " +
                     e.getMessage());
             return;

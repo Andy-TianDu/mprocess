@@ -40,7 +40,8 @@ public class GrepProcess extends MigratableProcess {
      * Implementation of <code>processing()</code> from
      * <code>MigratableProcess</code>.
      * This function should loop with the <code>suspending</code>
-     * flag.
+     * and <code>dead</code> flag.
+     * 
      *
      * @throws IOException if any IO error occurs.
      */
@@ -58,21 +59,26 @@ public class GrepProcess extends MigratableProcess {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+        String line = "";
 
-        while(!suspending){
-            String line = reader.readLine();
+       
+        while(!dead) {
+	        while(!suspending){
+	            line = reader.readLine();
+	            if(line == null)break;
+	            if(line.contains(query)){
+	                writer.write(line + "\n");
+	                writer.flush();
+	            }
+	            try {
+	                Thread.sleep(1000);
+	            } catch (InterruptedException e) {
+	                LOG.error("GrepProcess[" + id + "]: interrupted", e);
+	            }
+	        }
             if(line == null)break;
-            if(line.contains(query)){
-                writer.write(line + "\n");
-                writer.flush();
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                LOG.error("GrepProcess[" + id + "]: interrupted", e);
-            }
-        }
-
+            suspended = true;
+    	}
         reader.close();
         writer.close();
 

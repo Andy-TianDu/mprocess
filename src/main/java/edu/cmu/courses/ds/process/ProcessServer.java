@@ -88,6 +88,7 @@ public class ProcessServer implements Runnable{
      */
     private void bind(){
         try {
+        	
             serverSocket = new ServerSocket(PORT);
         } catch (IOException e) {
             LOG.fatal("ServerSocket bind error", e);
