@@ -335,8 +335,10 @@ public class ProcessManager {
 
     /**
      * Migrate the specific process by using process ID
-     * First lookup the process by ID, then suspend the process.
-     * Finally we <code>statMigrating()</code>
+     * First lookup the process by ID, then we connect 
+     * the specific host by <code>Socket</code>.
+     * If connected, suspend the process and call
+     * <code>statMigrating()</code>.
      *
      * @param args command arguments
      * @see edu.cmu.courses.ds.process.ProcessManager#getProcess(long)
@@ -353,73 +355,67 @@ public class ProcessManager {
                 System.out.println("No such process: " + args[1]);
                 return;
             }
+            Socket socket = null;
+            ObjectOutputStream out = null;
+            DataInputStream in = null;
             try {
-                process.suspend();
-            } catch (InterruptedException e) {
-                LOG.error(process.getClass().getSimpleName() +
-                        "[" + id + "] suspend error", e);
-                return;
+            	socket = new Socket(hostName, ProcessServer.PORT);
+                
+	            try {
+	                process.suspend();
+	            } catch (InterruptedException e) {
+	                LOG.error(process.getClass().getSimpleName() +
+	                        "[" + id + "] suspend error", e);
+	                return;
+	            }
+	            startMigrating(socket, process, hostName);
+
+	            socket.close();
             }
-            startMigrating(process, hostName);
+            catch (IOException e) {
+            	System.out.println("Connect " + hostName + " failed: " +
+                        e.getMessage());
+            	return;
+            }
         }
 
     }
 
     /**
      * Start migrating the process to specific host.
-     * First we connect the specific host by <code>Socket</code>.
-     * Then we send the entire <code>MigratableProcess</code> object
-     * by using <code>ObjectOutputStream</code>. Finally we receive
-     * ths migration status from host by using <code>DataInputStream</code>
+     * First we send the entire <code>MigratableProcess</code> object
+     * by using <code>ObjectOutputStream</code>. After that we receive
+     * this migration status from host by using <code>DataInputStream</code>.
+     * Finally, we send a signal to server to tell it to run. If exception
+     * happens, the process resumes to run.
      *
+     * @param socket the server socket
      * @param process the process object
      * @param hostName the host name which the object will migrate to
+     * @throws IOException 
      * @see java.net.Socket
      * @see java.io.DataInputStream
      * @see java.io.ObjectOutputStream
      */
-    private void startMigrating(MigratableProcess process, String hostName) {
-        Socket socket = null;
-        ObjectOutputStream out = null;
-        DataInputStream in = null;
+    private void startMigrating(Socket socket, MigratableProcess process, String hostName) throws IOException {
+    	ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+    	DataInputStream in = new DataInputStream(socket.getInputStream());
         boolean status = false;
-        try {
-            socket = new Socket(hostName, ProcessServer.PORT);
-            out = new ObjectOutputStream(socket.getOutputStream());
-            in = new DataInputStream(socket.getInputStream());
-
+        try {    	
             out.writeObject(process);
             status = in.readBoolean();
             if (status) {
-            	try {
-            		process.kill();
-            	}
-            	catch (InterruptedException e) {
-	                LOG.error(process.getClass().getSimpleName() +
-	                        "[" + process.getId() + "] kill error", e);
-	                return;
-            	}
-                System.out.println("Successfully migrated " +
-                        process.getClass().getSimpleName() +
-                        "[" + process.getId() + "]");
+            	killProcess(process);
+	        	out.writeObject(true);
+	            System.out.println("Successfully migrated " +
+	                    process.getClass().getSimpleName() +
+	                    "[" + process.getId() + "]");
             }
-            else
-            {
-            	try {
-            		process.resume();
-            	}
-            	catch (InterruptedException e) {
-	                LOG.error(process.getClass().getSimpleName() +
-	                        "[" + process.getId() + "] resume error", e);
-	                return;
-            	}
-                System.out.println("Failed to migrate " +
-                        process.getClass().getSimpleName() +
-                        "[" + process.getId() + "]");
-            }
+            else 
+            	resumeProcess(process);
             in.close();
             out.close();
-            socket.close();
+
         } catch (IOException e) {
         	try {
         		process.resume();
@@ -433,7 +429,46 @@ public class ProcessManager {
             return;
         }
     }
-
+    
+    
+    
+    /**
+     * Make the process dead.
+     * This function is called after server received the process,
+     * it returns after the local process is dead.
+     * 
+     * @param process the process migrated
+     */
+    private void killProcess(MigratableProcess process) {
+    	try {
+    		process.kill();
+    	}
+    	catch (InterruptedException e) {
+            LOG.error(process.getClass().getSimpleName() +
+                    "[" + process.getId() + "] kill error", e);
+            return;
+    	}
+    }
+    
+    /**
+     * Make the process run again.
+     * This function is called if exception happen when migration.
+     * 
+     * @param process the process to migrate.
+     */
+    private void resumeProcess(MigratableProcess process) {
+    	try {
+    		process.resume();
+    	}
+    	catch (InterruptedException e) {
+            LOG.error(process.getClass().getSimpleName() +
+                    "[" + process.getId() + "] resume error", e);
+            return;
+    	}
+        System.out.println("Failed to migrate " +
+                process.getClass().getSimpleName() +
+                "[" + process.getId() + "]");
+    }
     /**
      * Print the help information
      */
