@@ -2,11 +2,13 @@ package edu.cmu.courses.ds.process;
 
 import edu.cmu.courses.ds.io.TransactionalFileInputStream;
 import edu.cmu.courses.ds.io.TransactionalFileOutputStream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,9 +18,9 @@ import java.util.List;
  *
  * The default behaviours of migratable process contains
  * <code>run()</code> which implements the <code>Runnable</code>
- * interface, and <code>suspend()</code>. We need to save the IO
- * state during the migration. So we use our transactional file
- * IO stream classes.
+ * interface, and <code>suspend()</code>,
+ * We need to save the IO state during the migration.
+ * So we use our transactional file IO stream classes.
  *
  * @author Jian Fang(jianf)
  * @author Fangyu Gao(fangyug)
@@ -28,17 +30,6 @@ import java.util.List;
 public abstract class MigratableProcess implements Runnable, Serializable{
     protected static Logger LOG = LogManager.getLogger(MigratableProcess.class);
 
-    /**
-     * Transactional file input stream
-     * @see edu.cmu.courses.ds.io.TransactionalFileInputStream
-     */
-    protected TransactionalFileInputStream inputStream;
-
-    /**
-     * Transactional file output stream
-     * @see edu.cmu.courses.ds.io.TransactionalFileOutputStream
-     */
-    protected TransactionalFileOutputStream outputStream;
 
     /**
      * Process's arguments list
@@ -51,17 +42,6 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      */
     protected volatile boolean suspending;
 
-    /**
-     * The suspended flag. When the flag is set, the
-     * process is really suspend.
-     */ 
-    protected volatile boolean suspended;
-    /**
-     * The dead flag. When the flag is set, the <code>processing()</code>
-     * function should stop.
-     */
-    protected volatile boolean dead;
-    
     /**
      * The process ID
      */
@@ -95,8 +75,6 @@ public abstract class MigratableProcess implements Runnable, Serializable{
     public void initProcess(String[] arguments){
         this.arguments = new ArrayList<String>(Arrays.asList(arguments));
         this.suspending = false;
-        this.dead = false;
-        this.suspended = false;
         //this.id = ProcessManager.getInstance().generateID();
     }
 
@@ -119,8 +97,6 @@ public abstract class MigratableProcess implements Runnable, Serializable{
         }finally {
             ProcessManager.getInstance().finishProcess(this);
             suspending = false;
-            dead = false;
-            suspended = false;
         }
     }
 
@@ -134,7 +110,7 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      */
     public void suspend() throws InterruptedException {
         suspending = true;
-        while(!suspended)
+        while(suspending)
         {
         	Thread.sleep(10);
         }
@@ -144,32 +120,17 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      * Resume the running process from suspending.
      * Clear the <code>suspending</code> flag, and start the process again.
      *
-     * @throws InterruptedException if the resuming process is
-     *                              interrupted
      */
-    public void resume() throws InterruptedException {
+    public void resume(){
     	suspending = false;
-    	suspended = false;
     }
     
-    /**
-     * Kill the running process.
-     * Set the <code>dead</code> flag.
-     *
-     * @throws InterruptedException if the killing process is
-     *                              interrupted
-     */
-    public void kill() throws InterruptedException {
-    	dead = true;
-    	while(dead) {
-    		Thread.sleep(10);
-    	}
-    }
     
     /**
-     * Set <code>migrated</code> flag of <code>inputStream</code>,
-     * <code>outputStream</code>, and generate a new process ID after
-     * the migration.
+     * Using reflection to set <code>migrated</code> flag of
+     *  <code>TransactionalFileInputStream</code>,
+     * <code>TransactionalFileOutputStream</code>, 
+     * and generate a new process ID after the migration.
      *
      * @see edu.cmu.courses.ds.process.ProcessManager#generateID()
      * @see edu.cmu.courses.ds.io.TransactionalFileInputStream#setMigrated(boolean)
@@ -177,9 +138,46 @@ public abstract class MigratableProcess implements Runnable, Serializable{
      */
     public void migrated(){
         this.id = ProcessManager.getInstance().generateID();
-        inputStream.setMigrated(true);
-        outputStream.setMigrated(true);
+
+        Field f[] = this.getClass().getDeclaredFields();
+        for (int i = 0; i < f.length; i++) {
+        	if(f[i].getType().getSimpleName().equals("TransactionalFileInputStream"))
+        	{
+        		f[i].setAccessible(true);
+        		TransactionalFileInputStream in = null;
+        		try {
+					in = (TransactionalFileInputStream) f[i].get(this);
+				} catch (IllegalArgumentException e) {
+
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+
+					e.printStackTrace();
+				}
+        		if(in != null) {
+        			in.setMigrated(true);
+        		}
+
+        	}
+        	if(f[i].getType().getSimpleName().equals("TransactionalFileOutputStream"))
+        	{
+        		f[i].setAccessible(true);
+        		TransactionalFileOutputStream out = null;
+        		try {
+					out = (TransactionalFileOutputStream) f[i].get(this);
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
+        		if(out != null)
+        		{
+	        		out.setMigrated(true);
+        		}
+        	}
+         }
     }
+    
 
     /**
      * Get the process id

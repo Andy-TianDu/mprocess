@@ -34,15 +34,13 @@ public class ProcessReceiver implements Runnable{
      * The implementation of <code>Runnable</code> interface.
      * After connected and received process, the receiver
      * determine which class the process is, then send a
-     * signal to the client. The migrated process run after
-     * another acknowledge signal from client
+     * signal to the client to tell if the migration succeed.
      */
 	public void run() {
 		try {
 			ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
 			DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
 			
-			//out.writeBoolean(true);
 			Object object = in.readObject();
 			
 			MigratableProcess process = null;
@@ -50,7 +48,6 @@ public class ProcessReceiver implements Runnable{
             	process = (MigratableProcess)object;
             	process.migrated();
             	out.writeBoolean(true);
-            	in.readObject();
 	            ProcessManager.getInstance().startProcess(process);
             }
             else {
@@ -62,10 +59,8 @@ public class ProcessReceiver implements Runnable{
 		}
 		catch (IOException e) {
 			System.out.println("processing client request error");
-            //LOG.error("processing client request error", e);
         } catch (ClassNotFoundException e) {
         	System.out.println("client sent unrecognized object");
-            //LOG.warn("client sent unrecognized object");
         }
 	}
 }

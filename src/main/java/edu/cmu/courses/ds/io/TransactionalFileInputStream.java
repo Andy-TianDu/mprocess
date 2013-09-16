@@ -87,6 +87,14 @@ public class TransactionalFileInputStream extends InputStream
     }
 
     /**
+     * close the handle
+     */
+    @Override
+    public void close() throws IOException {
+    	handler.close();
+    }
+    
+    /**
      * Set the migrated flag
      *
      * @param migrated the migrated value

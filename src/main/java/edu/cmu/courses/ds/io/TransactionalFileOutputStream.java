@@ -55,6 +55,9 @@ public class TransactionalFileOutputStream extends OutputStream
         this.migrated = false;
     }
 
+    public File GetTargetFile() {
+    	return targetFile;
+    }
     /**
      * Implementation of <code>write()</code>
      * At the beginning, we check the migrated flag, if the flag
@@ -76,6 +79,14 @@ public class TransactionalFileOutputStream extends OutputStream
         }
         handler.write(b);
         offset++;
+    }
+    
+    /**
+     * close the handle
+     */
+    @Override
+    public void close() throws IOException {
+    	handler.close();
     }
 
     /**

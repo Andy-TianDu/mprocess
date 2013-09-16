@@ -49,16 +49,10 @@ public class TailProcess extends MigratableProcess{
      */
     private int outputLine;
     
-	/**
-	 * Default instructor.
-	 */
-	public TailProcess(){
-        super();
-        step = 0;
-        fileLine = 0;
-        lineCount = 0;
-        lineCount = 0;
-    }
+	TransactionalFileInputStream inputStream;
+	
+	TransactionalFileOutputStream outputStream;
+	
 
     /**
      * The constructor with parameters.
@@ -83,36 +77,6 @@ public class TailProcess extends MigratableProcess{
         lineCount = 0;
     }
 
-	/**
-	 * Initialize the process.
-	 * The suspend and dead status is cleared, and input and out put
-	 * stream is set.
-	 * 
-	 * @param arguments command line arguments from </code>ProcessManager
-     * <code>
-	 */
-    @Override
-    public void initProcess(String[] arguments){
-        this.arguments = new ArrayList<String>(Arrays.asList(arguments));
-        this.suspending = false;
-        this.dead = false;
-        this.suspended = false;
-        if(this.arguments.size() == 0)
-        	return;
-        //this.id = ProcessManager.getInstance().generateID();
-        if(this.arguments.size() < 3){
-            System.out.println("1GrepProcess[" + id + "]: " +
-                               "usage: run TailProcess OUTPUTLINE INPUT OUTPUT");
-            return;
-        }
-        outputLine = Integer.parseInt(this.arguments.get(0));
-        
-        inputStream = new TransactionalFileInputStream(new File(this.arguments.get(1)));
-        outputStream = new TransactionalFileOutputStream(new File(this.arguments.get(2)));
-        step = 0;
-        fileLine = 0;
-        lineCount = 0;
-    }
 
 
     /**
@@ -133,53 +97,51 @@ public class TailProcess extends MigratableProcess{
         PrintStream  writer = new PrintStream(outputStream);
         String line = null;
        
-        while(!dead) {
-	        while(!suspending){
-	        	switch(step) {
-	        	case 0:
-	        		if((line = reader.readLine()) != null)
-	        			fileLine++;
-	        		else {
-	        			reader.close();
-	        			inputStream.close();
-	        			inputStream = new TransactionalFileInputStream(new File(arguments.get(1)));
-	        			reader = new DataInputStream(inputStream);
-	        			step++;
-	        		}
-	        		break;
-	        	case 1:
-	        		if(lineCount < fileLine - outputLine) {
-		        		reader.readLine();
-		        		lineCount++;
-	        		}
-	        		else {
-	        			step++;
-	        		}
-	        		break;
-	        	case 2:
-	        		if((line = reader.readLine()) != null) {
-	        			writer.println(line);
-	        			writer.flush();
-	        		}
-	        		else {
-	        			step++;
-	        		}
-	        		break;
-	        	default:
-	        		LOG.error("TailProcess[" + id + "]: failed");
-	        		step = 3;
-	        	}
-	            try {
-	                Thread.sleep(1000);
-	            } catch (InterruptedException e) {
-	                LOG.error("GrepProcess[" + id + "]: interrupted", e);
-	            }
-	        	
-	            if(step == 3)break;
-	        }
+
+         while(!suspending){
+        	switch(step) {
+        	case 0:
+        		if((line = reader.readLine()) != null)
+        			fileLine++;
+        		else {
+        			reader.close();
+        			inputStream.close();
+        			inputStream = new TransactionalFileInputStream(new File(arguments.get(1)));
+        			reader = new DataInputStream(inputStream);
+        			step++;
+        		}
+        		break;
+        	case 1:
+        		if(lineCount < fileLine - outputLine) {
+	        		reader.readLine();
+	        		lineCount++;
+        		}
+        		else {
+        			step++;
+        		}
+        		break;
+        	case 2:
+        		if((line = reader.readLine()) != null) {
+        			writer.println(line);
+        			writer.flush();
+        		}
+        		else {
+        			step++;
+        		}
+        		break;
+        	default:
+        		LOG.error("TailProcess[" + id + "]: failed");
+        		step = 3;
+        	}
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                LOG.error("GrepProcess[" + id + "]: interrupted", e);
+            }
+        	
             if(step == 3)break;
-            suspended = true;
-    	}
+        }
+
         reader.close();
         writer.close();
 
