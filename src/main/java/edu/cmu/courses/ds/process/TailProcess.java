@@ -141,11 +141,5 @@ public class TailProcess extends MigratableProcess{
         	
             if(step == 3)break;
         }
-
-        reader.close();
-        writer.close();
-
-        inputStream.close();
-        outputStream.close();
     }
 }

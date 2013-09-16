@@ -143,9 +143,5 @@ public class SortProcess extends MigratableProcess{
         	if(line == null)
         		break;
         }
-        reader.close();
-        writer.close();
-        inputStream.close();
-        outputStream.close();
     }
 }
