@@ -53,7 +53,7 @@ public class ProcessServer implements Runnable{
      * <code>accept()</code> migration request. If the running
      * flag is not set, the function breaks the loop.
      */
-    @Override
+    
     public void run() {
         running = true;
         bind();
@@ -88,6 +88,7 @@ public class ProcessServer implements Runnable{
      */
     private void bind(){
         try {
+        	
             serverSocket = new ServerSocket(PORT);
         } catch (IOException e) {
             LOG.fatal("ServerSocket bind error", e);
@@ -118,53 +119,6 @@ public class ProcessServer implements Runnable{
             LOG.fatal("ServerSocket accept error", e);
             System.exit(-1);
         }
-        processRequest(clientSocket);
-    }
-
-    /**
-     * Process the migration request.
-     * First, read the <code>MigratableProcess</code> object from socket
-     * by using <code>ObjectInputStream</code>. Then resume the process.
-     *
-     * @param clientSocket the client socket
-     * @see java.io.ObjectInputStream#readObject()
-     * @see edu.cmu.courses.ds.process.ProcessServer#processRequest(java.net.Socket)
-     */
-    private void processRequest(Socket clientSocket){
-        ObjectInputStream in;
-        try {
-            in = new ObjectInputStream(clientSocket.getInputStream());
-            Object object = in.readObject();
-            if(object instanceof MigratableProcess){
-                processMigration(clientSocket.getOutputStream(),
-                                (MigratableProcess)object);
-            }
-            in.close();
-            clientSocket.close();
-        } catch (IOException e) {
-            LOG.error("processing client request error", e);
-        } catch (ClassNotFoundException e) {
-            LOG.warn("client sent unrecognized object");
-        }
-    }
-
-    /**
-     * Resume the migrated process.
-     * Start a new thread to run the migrated process.
-     *
-     * @param outputStream socket outputStream
-     * @param process migrated process
-     * @throws IOException if some IO errors occur
-     * @see java.io.PrintWriter#write(String)
-     * @see edu.cmu.courses.ds.process.ProcessManager#startProcess(MigratableProcess)
-     */
-    private void processMigration(OutputStream outputStream,
-                                  MigratableProcess process)
-            throws IOException {
-        PrintWriter out = new PrintWriter(outputStream);
-        process.migrated();
-        ProcessManager.getInstance().startProcess(process);
-        out.print(true);
-        out.close();
+        new Thread(new ProcessReceiver(clientSocket)).start();
     }
 }

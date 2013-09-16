@@ -41,6 +41,3 @@ The generated HTML doc is located at `doc/`
 
 Cheers! You're on board
 
-
-  
-

@@ -6,3 +6,4 @@ doc/*
 .settings/
 .project
 .classpath
+/target
