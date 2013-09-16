@@ -344,7 +344,7 @@ public class ProcessManager {
      *
      * @param args command arguments
      * @see edu.cmu.courses.ds.process.ProcessManager#getProcess(long)
-     * @see edu.cmu.courses.ds.process.ProcessManager#startMigrating(MigratableProcess, String)
+     * @see edu.cmu.courses.ds.process.ProcessManager#startMigrating(Socket, MigratableProcess, String)
      */
     private void processMigrateCommand(String[] args) {
         if (args.length <= 2) {
